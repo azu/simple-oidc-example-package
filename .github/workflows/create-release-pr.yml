@@ -51,11 +51,12 @@ jobs:
           # Get the default branch
           DEFAULT_BRANCH=$(gh api "repos/$GITHUB_REPOSITORY" --jq '.default_branch')
           
-          # Get the last release tag using GitHub API
-          LAST_TAG=""
+          # Get the latest release tag using GitHub API
+          # Use the exit code to determine if a release exists
           if LAST_TAG=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.tag_name' 2>/dev/null); then
             echo "Previous release found: $LAST_TAG"
           else
+            LAST_TAG=""
             echo "No previous releases found - this will be the first release"
           fi
           
