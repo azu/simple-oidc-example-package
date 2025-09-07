@@ -7,20 +7,12 @@ on:
       - main
     types:
       - closed
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to publish (e.g., 1.2.3)'
-        required: false
-        type: string
 
 jobs:
   release:
     if: |
-      (github.event_name == 'pull_request' && 
-       github.event.pull_request.merged == true &&
-       contains(github.event.pull_request.labels.*.name, 'Type: Release')) ||
-      github.event_name == 'workflow_dispatch'
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'Type: Release')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -35,17 +27,10 @@ jobs:
       - name: Get package info
         id: package
         run: |
-          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ -n "$INPUT_VERSION" ]; then
-            VERSION="$INPUT_VERSION"
-          else
-            VERSION=$(jq -r '.version' package.json)
-          fi
+          VERSION=$(jq -r '.version' package.json)
           PACKAGE_NAME=$(jq -r '.name' package.json)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          INPUT_VERSION: ${{ github.event.inputs.version }}
       
       - name: Check if tag exists
         id: tag-check
@@ -85,23 +70,15 @@ jobs:
         id: create-release
         if: steps.tag-check.outputs.exists == 'false'
         run: |
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            RELEASE_URL=$(gh release create "v$VERSION" \
-              --title "v$VERSION" \
-              --target "$SHA" \
-              --generate-notes)
-          else
-            RELEASE_URL=$(gh release create "v$VERSION" \
-              --title "v$VERSION" \
-              --target "$SHA" \
-              --notes "$PR_BODY")
-          fi
+          RELEASE_URL=$(gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --target "$SHA" \
+            --notes "$PR_BODY")
           echo "url=$RELEASE_URL" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.package.outputs.version }}
           SHA: ${{ github.sha }}
-          EVENT_NAME: ${{ github.event_name }}
           PR_BODY: ${{ github.event.pull_request.body }}
       
       - name: Comment on PR - Success
