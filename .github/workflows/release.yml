@@ -9,6 +9,7 @@ on:
       - closed
 
 jobs:
+  # Main release job that publishes to npm when a release PR is merged
   release:
     if: |
       github.event.pull_request.merged == true &&
@@ -25,11 +26,13 @@ jobs:
       package-name: ${{ steps.package.outputs.name }}
       release-url: ${{ steps.create-release.outputs.url }}
     steps:
+      # Checkout the repository code
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
       
+      # Extract package version and name from package.json
       - name: Get package info
         id: package
         run: |
@@ -50,6 +53,7 @@ jobs:
           VERSION: ${{ steps.package.outputs.version }}
       
       
+      # Setup Node.js environment for npm publishing
       - name: Setup Node.js
         if: steps.tag-check.outputs.exists == 'false'
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
@@ -68,6 +72,7 @@ jobs:
         if: steps.tag-check.outputs.exists == 'false'
         run: npm ci
       
+      # Publish package to npm with OIDC authentication and provenance
       - name: Publish to npm with provenance
         if: steps.tag-check.outputs.exists == 'false'
         run: npm publish --access public
