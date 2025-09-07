@@ -1,6 +1,6 @@
 {
   "name": "simple-oidc-example-package",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "An OIDC example",
   "main": "index.js",
   "scripts": {
