@@ -82,17 +82,7 @@ jobs:
               --jq '.body')
           fi
           
-          # Fallback if release notes generation fails
-          if [ -z "$RELEASE_NOTES" ] || [ "$RELEASE_NOTES" = "null" ] || [[ "$RELEASE_NOTES" == "Failed to generate"* ]]; then
-            echo "Release notes generation failed, using fallback"
-            RELEASE_NOTES="## Changes
-
-This release includes various improvements and bug fixes.
-
-See the commit history for detailed changes: https://github.com/$GITHUB_REPOSITORY/commits/v$VERSION"
-          fi
-          
-          # Set release notes as environment variable for PR body
+          # Set release notes as environment variable
           echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
           echo "$RELEASE_NOTES" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
