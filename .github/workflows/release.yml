@@ -8,12 +8,17 @@ on:
     types:
       - closed
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     if: |
       github.event.pull_request.merged == true &&
       contains(github.event.pull_request.labels.*.name, 'Type: Release')
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment: 
       name: release
     permissions:
@@ -33,8 +38,18 @@ jobs:
       - name: Get package info
         id: package
         run: |
+          echo "📦 Reading package information..."
+          if [ ! -f "package.json" ]; then
+            echo "❌ package.json not found"
+            exit 1
+          fi
           VERSION=$(jq -r '.version' package.json)
           PACKAGE_NAME=$(jq -r '.name' package.json)
+          if [ "$VERSION" = "null" ] || [ "$PACKAGE_NAME" = "null" ]; then
+            echo "❌ Invalid package.json: missing version or name"
+            exit 1
+          fi
+          echo "📦 Package: $PACKAGE_NAME@$VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
       
@@ -56,6 +71,7 @@ jobs:
         with:
           node-version: 'lts/*'
           registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
       
       - name: Install latest npm
         if: steps.tag-check.outputs.exists == 'false'
@@ -68,9 +84,19 @@ jobs:
         if: steps.tag-check.outputs.exists == 'false'
         run: npm ci
       
+      - name: Run security audit
+        if: steps.tag-check.outputs.exists == 'false'
+        run: |
+          echo "🔍 Running npm security audit..."
+          npm audit --audit-level=high
+          echo "✅ Security audit passed"
+      
       - name: Publish to npm with provenance
         if: steps.tag-check.outputs.exists == 'false'
-        run: npm publish --access public
+        run: |
+          echo "🚀 Publishing ${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }} to npm..."
+          npm publish --access public --provenance
+          echo "✅ Successfully published to npm"
       
       - name: Create GitHub Release with tag
         id: create-release
