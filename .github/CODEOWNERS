@@ -1,5 +1,6 @@
 # GitHub CODEOWNERS
 # This file defines code ownership for automatic review requests
+# All changes to this repository require review from the maintainer
 
 # Critical workflow files must be reviewed by repository owner
 /.github/workflows/release.yml @azu
