@@ -17,7 +17,11 @@ jobs:
     permissions:
       contents: write
       id-token: write  # OIDC
-      pull-requests: write  # PR comment
+    outputs:
+      released: ${{ steps.tag-check.outputs.exists == 'false' }}
+      version: ${{ steps.package.outputs.version }}
+      package-name: ${{ steps.package.outputs.name }}
+      release-url: ${{ steps.create-release.outputs.url }}
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -80,15 +84,22 @@ jobs:
           VERSION: ${{ steps.package.outputs.version }}
           SHA: ${{ github.sha }}
           PR_BODY: ${{ github.event.pull_request.body }}
-      
+  
+  comment:
+    needs: release
+    if: |
+      always() && 
+      github.event_name == 'pull_request' && 
+      needs.release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
       - name: Comment on PR - Success
-        if: |
-          always() && 
-          github.event_name == 'pull_request' && 
-          steps.tag-check.outputs.exists == 'false' &&
-          success()
+        if: needs.release.result == 'success'
         run: |
           gh pr comment "$PR_NUMBER" \
+            --repo "$REPOSITORY" \
             --body "✅ **Release v$VERSION completed successfully!**
           
           - 📦 npm package: https://www.npmjs.com/package/$PACKAGE_NAME/v/$VERSION
@@ -97,21 +108,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          VERSION: ${{ steps.package.outputs.version }}
-          PACKAGE_NAME: ${{ steps.package.outputs.name }}
-          RELEASE_URL: ${{ steps.create-release.outputs.url }}
+          VERSION: ${{ needs.release.outputs.version }}
+          PACKAGE_NAME: ${{ needs.release.outputs.package-name }}
+          RELEASE_URL: ${{ needs.release.outputs.release-url }}
           SERVER_URL: ${{ github.server_url }}
           REPOSITORY: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
       
       - name: Comment on PR - Failure
-        if: |
-          always() && 
-          github.event_name == 'pull_request' && 
-          steps.tag-check.outputs.exists == 'false' &&
-          failure()
+        if: needs.release.result == 'failure'
         run: |
           gh pr comment "$PR_NUMBER" \
+            --repo "$REPOSITORY" \
             --body "❌ **Release v$VERSION failed**
           
           Please check the workflow logs for details.
@@ -119,7 +127,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          VERSION: ${{ steps.package.outputs.version }}
+          VERSION: ${{ needs.release.outputs.version }}
           SERVER_URL: ${{ github.server_url }}
           REPOSITORY: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
