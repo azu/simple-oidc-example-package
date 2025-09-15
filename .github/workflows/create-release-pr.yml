@@ -92,16 +92,30 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           GITHUB_REPOSITORY: ${{ github.repository }}
 
+      - name: Commit version bump
+        run: |
+          git add package.json package-lock.json yarn.lock pnpm-lock.yaml || true
+          git commit -m "chore: release v${STEPS_VERSION_OUTPUTS_VERSION}"
+        env:
+          STEPS_VERSION_OUTPUTS_VERSION: ${{ steps.version.outputs.version }}
+        
+      - name: Push branch
+        run: |
+          git push -u origin "HEAD:release/v${STEPS_VERSION_OUTPUTS_VERSION}"
+        env:
+          STEPS_VERSION_OUTPUTS_VERSION: ${{ steps.version.outputs.version }}
+      
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
-        with:
-          branch: release/v${{ steps.version.outputs.version }}
-          delete-branch: true
-          title: "Release v${{ steps.version.outputs.version }}"
-          body: |
-            ${{ env.RELEASE_NOTES }}
-          commit-message: "chore: release v${{ steps.version.outputs.version }}"
-          labels: |
-            Type: Release
-          assignees: ${{ github.actor }}
-          draft: true
+        run: |
+          # Use --body-file with stdin to handle multiline content properly
+          echo "$RELEASE_NOTES" | gh pr create \
+            --title "Release v${STEPS_VERSION_OUTPUTS_VERSION}" \
+            --body-file - \
+            --base "${GITHUB_REF_NAME}" \
+            --head "release/v${STEPS_VERSION_OUTPUTS_VERSION}" \
+            --label "Type: Release" \
+            --assignee "${GITHUB_ACTOR}" \
+            --draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STEPS_VERSION_OUTPUTS_VERSION: ${{ steps.version.outputs.version }}
