@@ -95,15 +95,15 @@ jobs:
       - name: Commit version bump
         run: |
           git add package.json package-lock.json yarn.lock pnpm-lock.yaml || true
-          git commit -m "chore: release v${STEPS_VERSION_OUTPUTS_VERSION}"
+          git commit -m "chore: release v$VERSION"
         env:
-          STEPS_VERSION_OUTPUTS_VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
         
       - name: Push branch
         run: |
-          git push -u origin "HEAD:release/v${STEPS_VERSION_OUTPUTS_VERSION}"
+          git push -u origin "HEAD:release/v$VERSION"
         env:
-          STEPS_VERSION_OUTPUTS_VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
       
       - name: Create Pull Request
         run: |
