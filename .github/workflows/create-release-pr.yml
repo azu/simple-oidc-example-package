@@ -101,9 +101,11 @@ jobs:
         
       - name: Push branch
         run: |
-          git push -u origin "HEAD:release/v$VERSION"
+          git push -u "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:release/v$VERSION"
         env:
           VERSION: ${{ steps.version.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
       
       - name: Create Pull Request
         run: |
