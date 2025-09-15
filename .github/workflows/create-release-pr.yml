@@ -92,16 +92,31 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           GITHUB_REPOSITORY: ${{ github.repository }}
 
+      - name: Commit version bump
+        run: |
+          git add .
+          git commit -m "chore: release v$VERSION"
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        
+      - name: Push branch
+        run: |
+          git push -u origin "HEAD:release/v$VERSION"
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+      
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
-        with:
-          branch: release/v${{ steps.version.outputs.version }}
-          delete-branch: true
-          title: "Release v${{ steps.version.outputs.version }}"
-          body: |
-            ${{ env.RELEASE_NOTES }}
-          commit-message: "chore: release v${{ steps.version.outputs.version }}"
-          labels: |
-            Type: Release
-          assignees: ${{ github.actor }}
-          draft: true
+        run: |
+          echo "$RELEASE_NOTES" | gh pr create \
+            --title "Release v$VERSION" \
+            --body-file - \
+            --base "$BASE_BRANCH" \
+            --head "release/v$VERSION" \
+            --label "Type: Release" \
+            --assignee "$ACTOR" \
+            --draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          BASE_BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
