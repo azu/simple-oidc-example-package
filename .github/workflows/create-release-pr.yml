@@ -109,13 +109,15 @@ jobs:
         run: |
           # Use --body-file with stdin to handle multiline content properly
           echo "$RELEASE_NOTES" | gh pr create \
-            --title "Release v${STEPS_VERSION_OUTPUTS_VERSION}" \
+            --title "Release v$VERSION" \
             --body-file - \
-            --base "${GITHUB_REF_NAME}" \
-            --head "release/v${STEPS_VERSION_OUTPUTS_VERSION}" \
+            --base "$BASE_BRANCH" \
+            --head "release/v$VERSION" \
             --label "Type: Release" \
-            --assignee "${GITHUB_ACTOR}" \
+            --assignee "$ACTOR" \
             --draft
         env:
           GH_TOKEN: ${{ github.token }}
-          STEPS_VERSION_OUTPUTS_VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
+          BASE_BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
