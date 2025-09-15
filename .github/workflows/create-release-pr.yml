@@ -94,7 +94,7 @@ jobs:
 
       - name: Commit version bump
         run: |
-          git add package.json package-lock.json yarn.lock pnpm-lock.yaml || true
+          git add .
           git commit -m "chore: release v$VERSION"
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -107,7 +107,6 @@ jobs:
       
       - name: Create Pull Request
         run: |
-          # Use --body-file with stdin to handle multiline content properly
           echo "$RELEASE_NOTES" | gh pr create \
             --title "Release v$VERSION" \
             --body-file - \
